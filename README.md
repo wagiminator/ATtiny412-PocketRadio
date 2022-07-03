@@ -1,7 +1,8 @@
 # FM Pocket Radio based on ATtiny402/412
 PocketRadio is an ATtiny402/412 controlled FM radio with RDS (RDA5807MP), an integrated audio amplifier (TC8871 or XPT8871), a LiPo battery charger (MCP73831 or TP4054), an OLED display (SSD1306) and three buttons. You can directly connect a protected 3.7V LiPo battery, a 3W / 4Ω speaker and an FM antenna.
 
-- Design Files (EasyEDA): https://easyeda.com/wagiminator/
+- Project Video (YouTube): https://youtu.be/-taygMlm8Ls
+- Design Files (EasyEDA): https://easyeda.com/wagiminator/attiny412-pocket-radio
 
 ![pic2.jpg](https://raw.githubusercontent.com/wagiminator/ATtiny412-PocketRadio/main/documentation/PocketRadio_pic2.jpg)
 
@@ -20,7 +21,7 @@ The amplification can be selected via the value of the resistors R3 and R4 (Gain
 For battery charging the MCP73831 is used. The MCP73831 is a highly advanced linear charge management controller for use in space-limited, cost-sensitive applications. It employs a constant-current/constant-voltage charge algorithm with selectable preconditioning and charge termination. The constant current value is set with one external resistor (I = 1000V / R6). Charging is done via the built-in USB-C connector. The MCP73831 can be replaced by the much cheaper TP4054.
 
 ## ME6209 Voltage Regulator
-The ME6209A33 is a 3.3V positive voltage output, three–pin regulator, that provide a high current (up to 250mA) even when the input/output voltage differential is small. Low power consumption (3µA) and high accuracy (+/-2%) is achieved through CMOS technology. It allows input voltages as high as 18V with a dropout voltage around 80mV@40mA.
+The ME6209A33 is a 3.3V positive voltage output, three–pin regulator, that provides a high current (up to 250mA) even when the input/output voltage differential is small. Low power consumption (3µA) and high accuracy (+/-2%) is achieved through CMOS technology. It allows input voltages as high as 18V with a dropout voltage around 80mV@40mA.
 
 ![pic6.jpg](https://raw.githubusercontent.com/wagiminator/ATtiny412-PocketRadio/main/documentation/PocketRadio_pic6.jpg)
 
