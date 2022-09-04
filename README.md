@@ -3,6 +3,7 @@ PocketRadio is an ATtiny402/412 controlled FM radio with RDS (RDA5807MP), an int
 
 - Project Video (YouTube): https://youtu.be/-taygMlm8Ls
 - Design Files (EasyEDA): https://easyeda.com/wagiminator/attiny412-pocket-radio
+- Review on Megazoid's Hut (YouTube): https://youtu.be/HVwsa0pgvS4
 
 ![pic2.jpg](https://raw.githubusercontent.com/wagiminator/ATtiny412-PocketRadio/main/documentation/PocketRadio_pic2.jpg)
 
