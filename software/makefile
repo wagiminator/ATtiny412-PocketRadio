@@ -1,18 +1,17 @@
+# ===================================================================================
 # Project:  PocketRadio
 # Author:   Stefan Wagner
 # Year:     2022
 # URL:      https://github.com/wagiminator    
-#
-# Download AVR 8-bit Toolchain:
-# https://www.microchip.com/mplab/avr-support/avr-and-arm-toolchains-c-compilers
-# and extract to ./tools/avr-gcc 
+# ===================================================================================
 # Type "make help" in the command line.
+# ===================================================================================
 
 # Input and Output File Names
 SKETCH   = PocketRadio.ino
 TARGET   = pocketradio
 
-# Microcontroller Options
+# Microcontroller Settings
 DEVICE  ?= attiny412
 CLOCK    = 1000000
 FUSE0    = 0x00
@@ -24,27 +23,27 @@ FUSE6    = 0x04
 FUSE7    = 0x00
 FUSE8    = 0x00
 
-# Programmer Options (serialupdi or jtag2updi)
+# Programmer Settings
 PROGRMR ?= serialupdi
 PORT    ?= /dev/ttyUSB0
 
-# Paths
-GCCPATH  = ./tools/avr-gcc
-DFPPATH  = ./tools/dfp
-PYMPATH  = ./tools/pymcuprog
-ADCPATH  = ./tools/avrdude
-
-# Commands
-DFPINCL  = -B $(DFPPATH)/gcc/dev/$(DEVICE)/ -I $(DFPPATH)/include/
-COMPILE  = $(GCCPATH)/bin/avr-gcc $(DFPINCL) -flto -Wall -Os -mmcu=$(DEVICE) -DF_CPU=$(CLOCK)UL -x c++ $(SKETCH)
-PYPROG   = python3 -u $(PYMPATH)/prog.py -t uart -u $(PORT) -b 230400 -d $(DEVICE)
-AVRDUDE  = avrdude -C $(ADCPATH)/avrdude.conf -c jtag2updi -P $(PORT) -p $(DEVICE)
+# Toolchain
+CC       = avr-gcc
+OBJCOPY  = avr-objcopy
+OBJDUMP  = avr-objdump
+AVRSIZE  = avr-size
+PYPROG   = python3 -u ./tools/pymcuprog/prog.py -t uart -u $(PORT) -b 230400 -d $(DEVICE)
+AVRDUDE  = avrdude -C ./tools/avrdude/avrdude.conf -c $(PROGRMR) -P $(PORT) -p $(DEVICE)
 CLEAN    = rm -f *.lst *.obj *.cof *.list *.map *.eep.hex *.o *.s *.d
+
+# Compiler Flags
+CFLAGS   = -w -flto -Os -mmcu=$(DEVICE) -DF_CPU=$(CLOCK) -x c++
+CFLAGS  += -B include/dev/$(DEVICE) -I include
 
 # Symbolic Targets
 help:
 	@echo "Use the following commands:"
-	@echo "make all       compile and build $(TARGET).bin/.hex/.asm for $(DEVICE)"
+	@echo "make all       compile and build $(TARGET).elf/.bin/.hex/.asm for $(DEVICE)"
 	@echo "make hex       compile and build $(TARGET).hex for $(DEVICE)"
 	@echo "make asm       compile and disassemble to $(TARGET).asm for $(DEVICE)"
 	@echo "make bin       compile and build $(TARGET).bin for $(DEVICE)"
@@ -53,22 +52,32 @@ help:
 	@echo "make install   compile, upload and burn fuses for $(DEVICE)"
 	@echo "make clean     remove all build files"
 
-all:	buildbin buildhex buildasm removetemp size
+all:	buildelf buildbin buildhex buildasm removetemp size
 
-bin:  buildbin removetemp size
+elf:	buildelf removetemp size
 
-hex:	buildbin buildhex removetemp size removebin
+bin:	buildelf buildbin removetemp size removeelf
 
-asm:	buildbin buildasm removetemp size removebin
+hex:	buildelf buildhex removetemp size removeelf
 
-install: fuses upload
+asm:	buildelf buildasm removetemp size removeelf
 
-upload:	hex
-	@echo "Uploading to $(DEVICE) ..."
+flash:	install
+
+install: hex
+	@echo "Installing $(TARGET).hex to $(DEVICE) using $(PROGRMR) ..."
 ifeq ($(PROGRMR),serialupdi)
-	@$(PYPROG) --fuses 2:$(FUSE2) 6:$(FUSE6) 8:$(FUSE8) -f $(TARGET).hex -a write
+	@$(PYPROG) --fuses 0:$(FUSE0) 1:$(FUSE1) 2:$(FUSE2) 4:$(FUSE4) 5:$(FUSE5) 6:$(FUSE6) 7:$(FUSE7) 8:$(FUSE8) -f $(TARGET).hex -a write
 else
-	@$(AVRDUDE) -U fuse2:w:$(FUSE2):m -U fuse6:w:$(FUSE6):m -U fuse8:w:$(FUSE8):m -U flash:w:$(TARGET).hex:i
+	@$(AVRDUDE) -Ufuse0:w:$(FUSE0):m -Ufuse1:w:$(FUSE1):m -Ufuse2:w:$(FUSE2):m -Ufuse4:w:$(FUSE4):m -Ufuse5:w:$(FUSE5):m -Ufuse6:w:$(FUSE6):m -Ufuse7:w:$(FUSE7):m -Ufuse8:w:$(FUSE8):m -U flash:w:$(TARGET).hex:i
+endif
+
+upload: hex
+	@echo "Uploading $(TARGET).hex to $(DEVICE) using $(PROGRMR) ..."
+ifeq ($(PROGRMR),serialupdi)
+	@$(PYPROG) -f $(TARGET).hex -a write
+else
+	@$(AVRDUDE) -U flash:w:$(TARGET).hex:i
 endif
 
 fuses:
@@ -82,28 +91,34 @@ endif
 clean:
 	@echo "Cleaning all up ..."
 	@$(CLEAN)
-	@rm -f $(TARGET).bin $(TARGET).hex $(TARGET).asm
+	@rm -f $(TARGET).elf $(TARGET).bin $(TARGET).hex $(TARGET).asm
+
+buildelf:
+	@echo "Compiling $(SKETCH) for $(DEVICE) @ $(CLOCK)Hz ..."
+	@$(CC) $(CFLAGS) $(SKETCH) -o $(TARGET).elf
 
 buildbin:
-	@echo "Building $(TARGET).bin for $(DEVICE) @ $(CLOCK)Hz ..."
-	@$(COMPILE) -o $(TARGET).bin
+	@echo "Building $(TARGET).bin ..."
+	@$(OBJCOPY) -O binary -R .eeprom $(TARGET).elf $(TARGET).bin
 
 buildhex:
 	@echo "Building $(TARGET).hex ..."
-	@$(GCCPATH)/bin/avr-objcopy -O ihex -R .eeprom $(TARGET).bin $(TARGET).hex
+	@$(OBJCOPY) -j .text -j .data -O ihex $(TARGET).elf $(TARGET).hex
 
 buildasm:
 	@echo "Disassembling to $(TARGET).asm ..."
-	@$(GCCPATH)/bin/avr-objdump -d $(TARGET).bin > $(TARGET).asm
+	@$(OBJDUMP) -d $(TARGET).elf > $(TARGET).asm
 
 size:
-	@echo "FLASH: $(shell $(GCCPATH)/bin/avr-size -d $(TARGET).bin | awk '/[0-9]/ {print $$1 + $$2}') bytes"
-	@echo "SRAM:  $(shell $(GCCPATH)/bin/avr-size -d $(TARGET).bin | awk '/[0-9]/ {print $$2 + $$3}') bytes"
+	@echo "------------------"
+	@echo "FLASH: $(shell $(AVRSIZE) -d $(TARGET).elf | awk '/[0-9]/ {print $$1 + $$2}') bytes"
+	@echo "SRAM:  $(shell $(AVRSIZE) -d $(TARGET).elf | awk '/[0-9]/ {print $$2 + $$3}') bytes"
+	@echo "------------------"
 
 removetemp:
 	@echo "Removing temporary files ..."
 	@$(CLEAN)
 
-removebin:
-	@echo "Removing $(TARGET).bin ..."
-	@rm -f $(TARGET).bin
+removeelf:
+	@echo "Removing $(TARGET).elf ..."
+	@rm -f $(TARGET).elf
